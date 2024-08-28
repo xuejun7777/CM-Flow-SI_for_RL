@@ -24,9 +24,9 @@ The data will be saved in `./dataset/`.
 ### Offline RL
 ```
 # train offline RL Consistency-AC for hopper-medium-v2 task
-python main.py --env_name hopper-medium-v2 --model consistency --ms offline --exp RUN_NAME --save_best_model --lr_decay
+python offline.py --env_name hopper-medium-v2 --model consistency --ms offline --exp RUN_NAME --save_best_model --lr_decay
 # train offline RL Diffusion-QL for walker2d-medium-expert-v2 task
-python main.py --env_name walker2d-medium-expert-v2 --model diffusion --ms offline --exp RUN_NAME --save_best_model --lr_decay
+python offline.py --env_name walker2d-medium-expert-v2 --model diffusion --ms offline --exp RUN_NAME --save_best_model --lr_decay
 ```
 ### Online RL
 From scratch:
