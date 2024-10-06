@@ -1,0 +1,3 @@
+[submodule "bridger"]
+	path = bridger
+	url = ./bridger.git
