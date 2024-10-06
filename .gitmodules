@@ -1,6 +1,6 @@
 [submodule "bridger"]
 	path = bridger
-	url = ./bridger
+	url = https://github.com/xuejun7777/bridger.git
 [submodule "SI-bridger"]
 	path = SI-bridger
 	url = https://github.com/xuejun7777/SI-bridger.git
