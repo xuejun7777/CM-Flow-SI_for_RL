@@ -101,19 +101,22 @@ def train_agent(state_dim, action_dim, max_action, device, output_dir, writer, a
             actions = np.array(actions)
 
         next_obs, rewards, dones, infos = envs.step(actions)
-
         for info in infos:
-            if "episode" in info.keys():
-                print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
-                writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
-                writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
-                writer.add_scalar("charts/epsilon", epsilon, global_step)
+            if info == "episode":
+                # print(infos)
+                episode_indices = np.where(infos['_episode'])[0]
+                if episode_indices.size > 0:
+                    episode_info = infos['episode'][episode_indices[0]]
+                    print(f"global_step={global_step}, episodic_return={episode_info['r']}")
+                    writer.add_scalar("charts/episodic_return", episode_info["r"], global_step)
+                    writer.add_scalar("charts/episodic_length", episode_info["l"], global_step)
+                    writer.add_scalar("charts/epsilon", epsilon, global_step)
                 break
 
         real_next_obs = next_obs.copy()
         for idx, d in enumerate(dones):
             if d:
-                real_next_obs[idx] = infos[idx]["terminal_observation"]
+                real_next_obs[idx] = infos["terminal_observation"][idx]
         real_next_obs = real_next_obs.reshape(args.num_envs, -1) 
 
         rb.add(obs.astype(np.float32), real_next_obs.astype(np.float32), actions, rewards, dones, infos)

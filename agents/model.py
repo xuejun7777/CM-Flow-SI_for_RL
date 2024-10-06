@@ -37,11 +37,11 @@ class MLP(nn.Module):
 
         self.final_layer = nn.Linear(256, action_dim)
 
-    def forward(self, x, time, state):
+    def forward(self, x, time, global_cond=None):
         if len(time.shape) > 1:
             time = time.squeeze(1)  # added for shaping t from (batch_size, 1) to (batch_size,)
         t = self.time_mlp(time)
-        x = torch.cat([x, t, state], dim=1)
+        x = torch.cat([x, t, global_cond], dim=1)
         x = self.mid_layer(x)
 
         return self.final_layer(x)
@@ -185,3 +185,61 @@ class Unet(nn.Module):
 
         return x
 
+
+
+class InterpolantsMLP(nn.Module):
+    def __init__(self,
+                 state_dim,
+                 action_dim,
+                 device,
+                 t_dim=16):
+        super().__init__()
+        self.b_net = MLP(state_dim,
+                 action_dim,
+                 device,
+                 t_dim)
+
+        self.v_net = MLP(state_dim,
+                 action_dim,
+                 device,
+                 t_dim)
+
+        self.s_net = MLP(state_dim,
+                 action_dim,
+                 device,
+                 t_dim)
+        
+class InterpolantsLN_Resnet(nn.Module):
+    def __init__(self, state_dim, action_dim, device, t_dim=16, hidden_size=256, dropout_rate=0.1):
+        super().__init__()
+        self.b_net = LN_Resnet(state_dim,
+                 action_dim,
+                 device,
+                 t_dim,
+                 hidden_size,
+                 dropout_rate)
+        self.v_net = LN_Resnet(state_dim,
+                 action_dim,
+                 device,
+                 t_dim,
+                 hidden_size,
+                 dropout_rate)
+        self.s_net = LN_Resnet(state_dim,
+                 action_dim,
+                 device,
+                 t_dim,
+                 hidden_size,
+                 dropout_rate)
+
+class InterpolantsUnet(nn.Module): 
+    def __init__(self, 
+        n_channel: int,
+        D: int = 128,
+        device: torch.device = torch.device("cpu"),
+        ) -> None:
+        super(Unet, self).__init__()
+        
+        self.b_net = Unet(n_channel, D, device)
+        self.v_net = Unet(n_channel, D, device)
+        self.s_net = Unet(n_channel, D, device)
+        

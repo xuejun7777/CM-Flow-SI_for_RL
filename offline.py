@@ -10,6 +10,7 @@ import pickle
 
 import d4rl
 from utils import utils
+from bridger.utils import util
 from utils.data_sampler import Data_Sampler
 from utils.logger import logger, setup_logger
 # from utils.wandb import init_wandb
@@ -61,6 +62,28 @@ consistency_hyperparameters = {
     'kitchen-mixed-v0':              {'lr': 3e-4, 'eta': 0.5, 'T': 2,  'q_norm': True,  'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 1500, 'gn': 2.0, 'top_k': 2},
 }
 
+stochastic_interpolants_hyperparameters = {
+    'halfcheetah-medium-v2':         {'lr': 3e-4, 'eta': 1.0,   'T': 2,   'q_norm': False, 'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 9.0,  'top_k': 2, 'diffuse_params' :{"net_type": "unet1D_si", "interpolant_type": "power3", "gamma_type": "(2t(t-1))^0.5", "epsilon_type": "1-t", "prior_policy": "gaussian", "beta_max": 0.03, "t0": 1e-4, "T": 1, "clip_denoise": True}},
+    'hopper-medium-v2':              {'lr': 3e-4, 'eta': 0.1,   'T': 2,  'q_norm': False, 'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 9.0,  'top_k': 1, 'diffuse_params' :{"net_type": "unet1D_si", "interpolant_type": "power3", "gamma_type": "(2t(t-1))^0.5", "epsilon_type": "1-t", "prior_policy": "gaussian", "beta_max": 0.03, "t0": 1e-4, "T": 1, "clip_denoise": True}},
+    'walker2d-medium-v2':            {'lr': 3e-4, 'eta': 1.0,   'T': 2,  'q_norm': True,  'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 1.0,  'top_k': 3},
+    'halfcheetah-medium-replay-v2':  {'lr': 3e-4, 'eta': 1.0,   'T': 2,  'q_norm': False,  'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 2.0,  'top_k': 2},
+    'hopper-medium-replay-v2':       {'lr': 3e-4, 'eta': 0.1,   'T': 2,  'q_norm': False,  'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 4.0,  'top_k': 5},
+    'walker2d-medium-replay-v2':     {'lr': 3e-4, 'eta': 0.1,   'T': 2,  'q_norm': False,  'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 4.0,  'top_k': 2},
+    'halfcheetah-medium-expert-v2':  {'lr': 3e-4, 'eta': 1.0,   'T': 2,  'q_norm': False, 'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 7.0,  'top_k': 4},
+    'hopper-medium-expert-v2':       {'lr': 3e-4, 'eta': 1.0,   'T':2,  'q_norm': False,  'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 5.0,  'top_k': 5},
+    'walker2d-medium-expert-v2':     {'lr': 3e-4, 'eta': 1.0,   'T': 2,  'q_norm': True, 'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 5.0,  'top_k': 1},
+    'antmaze-umaze-v0':              {'lr': 3e-4, 'eta': 0.01,   'T': 5,  'q_norm': True,  'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'cql_antmaze', 'eval_freq': 50, 'num_epochs': 1000, 'gn': 2.0,  'top_k': 4},
+    'antmaze-umaze-diverse-v0':      {'lr': 3e-4, 'eta': 0.01,   'T': 5,  'q_norm': True,  'scale_consis_loss': True,  'max_q_backup': True,   'reward_tune': 'cql_antmaze', 'eval_freq': 50, 'num_epochs': 1000, 'gn': 3.0,  'top_k': 4},
+    'antmaze-medium-play-v0':        {'lr': 1e-3, 'eta': 0.01,   'T': 5, 'q_norm': False,  'scale_consis_loss': True,  'max_q_backup': True,   'reward_tune': 'cql_antmaze', 'eval_freq': 50, 'num_epochs': 1000, 'gn': 2.0,  'top_k': 8},
+    'antmaze-medium-diverse-v0':     {'lr': 3e-4, 'eta': 0.01,   'T': 5,  'q_norm': True, 'scale_consis_loss': True,  'max_q_backup': True,   'reward_tune': 'cql_antmaze', 'eval_freq': 50, 'num_epochs': 1000, 'gn': 1.0,  'top_k': 1},
+    'antmaze-large-play-v0':         {'lr': 3e-4, 'eta': 4.5,   'T': 5,  'q_norm': True,  'scale_consis_loss': True,  'max_q_backup': True,   'reward_tune': 'cql_antmaze', 'eval_freq': 50, 'num_epochs': 1000, 'gn': 10.0, 'top_k': 2},
+    'antmaze-large-diverse-v0':      {'lr': 3e-4, 'eta': 3.5,   'T': 5,  'q_norm': True,  'scale_consis_loss': True,  'max_q_backup': True,   'reward_tune': 'cql_antmaze', 'eval_freq': 50, 'num_epochs': 1000, 'gn': 2.0,  'top_k': 5},
+    'pen-human-v1':                  {'lr': 3e-5, 'eta': 0.01,  'T': 5,  'q_norm': True,  'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'normalize',   'eval_freq': 50, 'num_epochs': 1000, 'gn': 7.0,  'top_k': 2},
+    'pen-cloned-v1':                 {'lr': 3e-5, 'eta': 0.01,   'T': 5,  'q_norm': True, 'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'normalize',   'eval_freq': 50, 'num_epochs': 500, 'gn': 8.0,  'top_k': 5},
+    'kitchen-complete-v0':           {'lr': 3e-4, 'eta': 0.5, 'T': 5,  'q_norm': True,  'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 1500 , 'gn': 2.0,  'top_k': 4},
+    'kitchen-partial-v0':            {'lr': 3e-4, 'eta': 0.5, 'T': 5,  'q_norm': True,  'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 1500, 'gn': 2.0, 'top_k': 1},
+    'kitchen-mixed-v0':              {'lr': 3e-4, 'eta': 0.5, 'T': 5,  'q_norm': True,  'scale_consis_loss': True,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 1500, 'gn': 2.0, 'top_k': 2},
+}
 
 def train_agent(env, env_name, state_dim, action_dim, max_action, device, output_dir, writer, args):
     # Load buffer
@@ -88,7 +111,7 @@ def train_agent(env, env_name, state_dim, action_dim, max_action, device, output
             lr_maxt=args.num_epochs,
             grad_norm=args.gn,
             )
-    else:
+    elif args.model == 'consistency':
         from agents.ql_consistency import Consistency_QL as Agent
         agent = Agent(state_dim=state_dim,
                     action_dim=action_dim,
@@ -107,6 +130,23 @@ def train_agent(env, env_name, state_dim, action_dim, max_action, device, output
                     steps_per_epoch=args.num_steps_per_epoch,
                     improved_CT=False,  # [Improved Techniques For Consistency Training](https://arxiv.org/pdf/2310.14189.pdf)
                     )
+    elif args.model == 'stochastic_interpolants':
+        from agents.ql_si import SI_QL as Agent
+        agent = Agent(args.model_args, 
+                    device=device,
+                    discount=args.discount,
+                    tau=args.tau,
+                    max_q_backup=args.max_q_backup,
+                    eta=args.eta,
+                    lr=args.lr,
+                    lr_decay=args.lr_decay,
+                    lr_maxt=args.num_epochs,
+                    grad_norm=args.gn,
+                    q_norm=args.q_norm,
+                    steps_per_epoch=args.num_steps_per_epoch
+                    )
+    else: raise NotImplementedError
+                    
 
     early_stop = False
     stop_check = utils.EarlyStopping(tolerance=1, min_delta=0.)
@@ -149,7 +189,7 @@ def train_agent(env, env_name, state_dim, action_dim, max_action, device, output
 
         # Evaluation
         eval_res, eval_res_std, eval_norm_res, eval_norm_res_std = eval_policy(agent, args.env_name, args.seed,
-                                                                               eval_episodes=args.eval_episodes)
+                                                                               eval_episodes=args.eval_episodes, args=args)
         bc_loss = np.mean(loss_metric['bc_loss'])
         ql_loss = np.mean(loss_metric['ql_loss'])
         actor_loss = np.mean(loss_metric['actor_loss'])
@@ -246,11 +286,13 @@ def train_agent(env, env_name, state_dim, action_dim, max_action, device, output
 
 # Runs policy for X episodes and returns average reward
 # A fixed seed is used for the eval environment
-def eval_policy(policy, env_name, seed, eval_episodes=10):
+def eval_policy(policy, env_name, seed, eval_episodes=10, args=None):
     eval_env = gym.make(env_name)
     eval_env.seed(seed + 100)
-
-    policy.model.eval()
+    if args.model == "stochastic_interpolants":
+        policy.actor.net.eval()
+    else:
+        policy.model.eval()
     policy.actor.eval()
 
     scores = []
@@ -270,7 +312,11 @@ def eval_policy(policy, env_name, seed, eval_episodes=10):
     avg_norm_score = eval_env.get_normalized_score(avg_reward)
     std_norm_score = np.std(normalized_scores)
 
-    policy.model.train()
+    if args.model == "stochastic_interpolants":
+        policy.actor.net.eval()
+    else:
+        policy.model.eval()
+    
     policy.actor.train()
     utils.print_banner(f"Evaluation over {eval_episodes} episodes: {avg_reward:.2f} {avg_norm_score:.2f}")
     return avg_reward, std_reward, avg_norm_score, std_norm_score
@@ -297,15 +343,21 @@ if __name__ == "__main__":
     parser.add_argument('--save_best_model', action='store_true')
 
     ### RL Parameters ###
-    parser.add_argument("--discount", default=0.99, type=float)
+    parser.add_argument("--discount", default=0.997, type=float)
     parser.add_argument("--tau", default=0.005, type=float)
 
     ### Diffusion Setting ###
     parser.add_argument("--T", default=-1, type=int)
     parser.add_argument("--beta_schedule", default='vp', type=str)
+    ### SI Setting ###
+    parser.add_argument("--beta_max", type=float, default=0.03)
+    parser.add_argument("--interpolant_type", type=str, default='power3', help="task name")
+
+    parser.add_argument("--pretrain", action="store_true", help="use pretrained model")
+    parser.add_argument("--prior_policy", type=str, default='gaussian', help="{gaussian, cvae}")
     ### Algo Choice ###
     parser.add_argument("--algo", default="ql", type=str)  # ['bc', 'ql']
-    parser.add_argument("--model", default="diffusion", type=str)  # ['diffusion', 'consistency']
+    parser.add_argument("--model", default="diffusion", type=str)  # ['diffusion', 'consistency', 'stochastic_interpolants', 'vae']
     parser.add_argument("--ms", default='offline', type=str, help="['online', 'offline']")
 
     parser.add_argument("--lr", default=-1., type=float)
@@ -322,11 +374,32 @@ if __name__ == "__main__":
     args.device = f"cuda:{args.device}" if torch.cuda.is_available() else "cpu"
     args.output_dir = f'{args.dir}'
 
+    env = gym.make(args.env_name)
+
+    env.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    np.random.seed(args.seed)
+
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0] 
+    max_action = float(env.action_space.high[0])
+
     if args.model == 'diffusion':
         hyperparameters = diffusion_hyperparameters
     elif args.model == 'consistency':
         hyperparameters = consistency_hyperparameters
         args.scale_consis_loss = hyperparameters[args.env_name]['scale_consis_loss']
+    elif args.model == 'stochastic_interpolants':
+        hyperparameters = stochastic_interpolants_hyperparameters
+        hyperparameters[args.env_name]['diffuse_params']['interpolant_type'] = args.interpolant_type
+        hyperparameters[args.env_name]['diffuse_params']['beta_max'] = args.beta_max
+    elif args.model == 'vae':
+        pass
+    elif args.model == 'mlp':
+        pass
+    else:
+        raise NotImplementedError
 
     args.num_epochs = hyperparameters[args.env_name]['num_epochs']
     args.eval_freq = hyperparameters[args.env_name]['eval_freq']
@@ -358,7 +431,7 @@ if __name__ == "__main__":
     )
 
     # Setup Logging
-    file_name = f"{args.env_name}|{args.exp}|{args.model}-{args.algo}|T-{args.T}"
+    file_name = f"{args.env_name}|{args.exp}|{args.model}-{args.algo}|T-{args.T}" if args.model != 'stochastic_interpolants' else f"{args.env_name}|{args.exp}|{args.model}-{args.algo}|T-{args.T}|{args.prior_policy}"
     if args.lr_decay: file_name += '|lr_decay'
     file_name += f'|ms-{args.ms}'
 
@@ -366,6 +439,7 @@ if __name__ == "__main__":
     file_name += f'|{args.seed}'
 
     results_dir = os.path.join(args.output_dir, file_name)
+
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
     utils.print_banner(f"Saving location: {results_dir}")
@@ -374,21 +448,24 @@ if __name__ == "__main__":
     variant = vars(args)
     variant.update(version=f"{args.model}-policies-RL")
 
-    env = gym.make(args.env_name)
-
-    env.seed(args.seed)
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
-
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0] 
-    max_action = float(env.action_space.high[0])
 
     variant.update(state_dim=state_dim)
     variant.update(action_dim=action_dim)
     variant.update(max_action=max_action)
     setup_logger(os.path.basename(results_dir), variant=variant, log_dir=results_dir)
     utils.print_banner(f"Env: {args.env_name}, state_dim: {state_dim}, action_dim: {action_dim}")
+
+    if args.model == 'stochastic_interpolants':
+        model_args = hyperparameters[args.env_name]['diffuse_params']
+        model_args['prior_policy'] = args.prior_policy
+        model_args['env_name'] = args.env_name
+        model_args['action_dim'] = action_dim
+        model_args['obs_dim'] = state_dim
+        model_args['pretrain'] = args.pretrain
+        model_args['diffuse_step'] = args.T
+        model_args['seed'] = args.seed
+        model_args['ckpt_path'] = results_dir
+        setattr(args, 'model_args', model_args)
 
     train_agent(env,
                 args.env_name,
