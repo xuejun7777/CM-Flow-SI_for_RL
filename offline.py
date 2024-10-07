@@ -63,8 +63,8 @@ consistency_hyperparameters = {
 }
 
 stochastic_interpolants_hyperparameters = {
-    'halfcheetah-medium-v2':         {'lr': 3e-4, 'eta': 1.0,   'T': 2,   'q_norm': False, 'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 9.0,  'top_k': 2, 'diffuse_params' :{"net_type": "unet1D_si", "interpolant_type": "power3", "gamma_type": "(2t(t-1))^0.5", "epsilon_type": "1-t", "prior_policy": "gaussian", "beta_max": 0.03, "t0": 1e-4, "T": 1, "clip_denoise": True}},
-    'hopper-medium-v2':              {'lr': 3e-4, 'eta': 0.1,   'T': 2,  'q_norm': False, 'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 9.0,  'top_k': 1, 'diffuse_params' :{"net_type": "unet1D_si", "interpolant_type": "power3", "gamma_type": "(2t(t-1))^0.5", "epsilon_type": "1-t", "prior_policy": "gaussian", "beta_max": 0.03, "t0": 1e-4, "T": 1, "clip_denoise": True}},
+    'halfcheetah-medium-v2':         {'lr': 5e-5, 'eta': 1.0,   'T': 2,   'q_norm': False, 'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 9.0,  'top_k': 2, 'diffuse_params' :{"net_type": "MLP_si", "interpolant_type": "power3", "gamma_type": "(2t(t-1))^0.5", "epsilon_type": "1-t", "prior_policy": "gaussian", "beta_max": 0.03, "t0": 1e-4, "T": 1, "clip_denoise": True}},
+    'hopper-medium-v2':              {'lr': 5e-5, 'eta': 0.1,   'T': 2,  'q_norm': False, 'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 9.0,  'top_k': 1, 'diffuse_params' :{"net_type": "MLP_si", "interpolant_type": "power3", "gamma_type": "(2t(t-1))^0.5", "epsilon_type": "1-t", "prior_policy": "gaussian", "beta_max": 0.03, "t0": 1e-4, "T": 1, "clip_denoise": True}},
     'walker2d-medium-v2':            {'lr': 3e-4, 'eta': 1.0,   'T': 2,  'q_norm': True,  'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 1.0,  'top_k': 3},
     'halfcheetah-medium-replay-v2':  {'lr': 3e-4, 'eta': 1.0,   'T': 2,  'q_norm': False,  'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 2.0,  'top_k': 2},
     'hopper-medium-replay-v2':       {'lr': 3e-4, 'eta': 0.1,   'T': 2,  'q_norm': False,  'scale_consis_loss': False,  'max_q_backup': False,  'reward_tune': 'no',          'eval_freq': 50, 'num_epochs': 2000, 'gn': 4.0,  'top_k': 5},
@@ -132,7 +132,8 @@ def train_agent(env, env_name, state_dim, action_dim, max_action, device, output
                     )
     elif args.model == 'stochastic_interpolants':
         from agents.ql_si import SI_QL as Agent
-        agent = Agent(args.model_args, 
+        agent = Agent(args.model_args,
+                    prior_args=args.prior_args,
                     device=device,
                     discount=args.discount,
                     tau=args.tau,
@@ -354,7 +355,7 @@ if __name__ == "__main__":
     parser.add_argument("--interpolant_type", type=str, default='power3', help="task name")
 
     parser.add_argument("--pretrain", action="store_true", help="use pretrained model")
-    parser.add_argument("--prior_policy", type=str, default='gaussian', help="{gaussian, cvae}")
+    parser.add_argument("--prior_policy", type=str, default='gaussian', help="{gaussian, cvae, diffusion, mlp}")
     ### Algo Choice ###
     parser.add_argument("--algo", default="ql", type=str)  # ['bc', 'ql']
     parser.add_argument("--model", default="diffusion", type=str)  # ['diffusion', 'consistency', 'stochastic_interpolants', 'vae']
@@ -460,12 +461,40 @@ if __name__ == "__main__":
         model_args['prior_policy'] = args.prior_policy
         model_args['env_name'] = args.env_name
         model_args['action_dim'] = action_dim
+        model_args['max_action'] = max_action
         model_args['obs_dim'] = state_dim
         model_args['pretrain'] = args.pretrain
         model_args['diffuse_step'] = args.T
         model_args['seed'] = args.seed
         model_args['ckpt_path'] = results_dir
-        setattr(args, 'model_args', model_args)
+        if args.prior_policy == "diffusion":
+            prior_args = {"env_name": model_args['env_name']}
+            prior_args['state_dim'] = state_dim
+            prior_args['action_dim'] = action_dim
+            prior_args['max_action'] = max_action
+            prior_args['device'] = args.device
+            prior_args['discount'] = args.discount
+            prior_args['tau'] = args.tau
+            prior_args['max_q_backup'] = args.max_q_backup
+            prior_args['eta'] = args.eta
+            prior_args['beta_schedule'] = args.beta_schedule
+            prior_args['n_timesteps'] = args.T
+            prior_args['prior_policy'] = args.prior_policy
+            prior_args['seed'] = args.seed
+            
+            prior_dir = f"{args.env_name}|{args.exp}|diffusion-{args.algo}|T-{args.T}|lr_decay|ms-{args.ms}|k-*|{args.seed}"  #FIXME: maunally set top_k?
+
+            prior_args['prior_dir'] = os.path.join(args.output_dir, prior_dir)
+            setattr(args, 'model_args', model_args)
+            setattr(args, 'prior_args', prior_args)
+        else:
+            prior_args = {"env_name": model_args['env_name']}
+            prior_args['device'] = args.device
+            prior_args['prior_policy'] = model_args['prior_policy']
+            prior_args['seed'] = model_args['seed']
+            prior_args['action_dim'] = model_args['action_dim']
+            setattr(args, 'model_args', model_args)
+            setattr(args, 'prior_args', prior_args)
 
     train_agent(env,
                 args.env_name,

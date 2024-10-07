@@ -22,6 +22,7 @@ class StochasticInterpolants(nn.Module):
         self.epsilon_type = model_args['epsilon_type']
         self.prior_policy = model_args['prior_policy']
         self.diffuse_step = model_args['diffuse_step']
+        self.max_action = model_args['max_action']
 
         self.d = model_args['beta_max']
 
@@ -29,7 +30,7 @@ class StochasticInterpolants(nn.Module):
         self.gamma_inv_max = 200.0
 
         self.net = None
-        self.ema = None
+        # self.ema = None
         self.prior_model = None
 
         if 'sde_type' in model_args:
@@ -285,6 +286,7 @@ class StochasticInterpolants(nn.Module):
             prior_action = self.prior_model.sample(obs_cond).float().to(device)
         # prior_action = prior_action.repeat(1, 8, 1)  #FIXME: using bridger's unet must extent the action dim
         actions = self.sample(x_prior=prior_action.squeeze(), cond=obs_cond)
+        actions.clamp_(-self.max_action, self.max_action)
         # actions = actions.mean(axis=1).squeeze()  #FIXME: then average the action. NOT GOOD
         return actions
 
@@ -296,15 +298,16 @@ class StochasticInterpolants(nn.Module):
         :param save_path:
         :return:
         """
-        with self.ema.average_parameters():
-            if self.sde_type == 'vs':
-                x_target, x_target_traj = self.sde_vs(v_net=self.net.v_net, s_net=self.net.s_net, x_initial=x_prior, cond=cond,
-                                                      delta_t=float(1.0 / self.diffuse_step), score_weight=1.0, direction='forward')
-            elif self.sde_type == 'bs':
-                x_target, x_target_traj = self.sde_bs(b_net=self.net.b_net, s_net=self.net.s_net, x_initial=x_prior, cond=cond,
-                                                      delta_t=float(1.0 / self.diffuse_step), score_weight=1.0, direction='forward')
-            else:
-                raise NotImplementedError
+        # with self.ema.average_parameters():
+        if self.sde_type == 'vs':
+            x_target, x_target_traj = self.sde_vs(v_net=self.net.v_net, s_net=self.net.s_net, x_initial=x_prior, cond=cond,
+                                                    delta_t=float(1.0 / self.diffuse_step), score_weight=1.0, direction='forward')
+        elif self.sde_type == 'bs':
+            x_target, x_target_traj = self.sde_bs(b_net=self.net.b_net, s_net=self.net.s_net, x_initial=x_prior, cond=cond,
+                                                    delta_t=float(1.0 / self.diffuse_step), score_weight=1.0, direction='forward')
+        else:
+            raise NotImplementedError
+        
         if recod_traj:
             return x_target, x_target_traj
         else:

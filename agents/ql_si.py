@@ -169,6 +169,7 @@ def lognormal_timestep_distribution(
 class SI_QL(object):
     def __init__(self,
                  model_args,
+                 prior_args,
                  device,
                  discount,
                  tau,
@@ -190,11 +191,11 @@ class SI_QL(object):
         self.ema_decay = ema_decay
         self.ema = EMA(ema_decay)
         model = StochasticInterpolants(model_args)
-        prior_args = {"env_name": model_args['env_name']}
-        prior_args['device'] = device
-        prior_args['prior_policy'] = model_args['prior_policy']
-        prior_args['seed'] = model_args['seed']
-        prior_args['action_dim'] = model_args['action_dim']
+        # prior_args = {"env_name": model_args['env_name']}
+        # prior_args['device'] = device
+        # prior_args['prior_policy'] = model_args['prior_policy']
+        # prior_args['seed'] = model_args['seed']
+        # prior_args['action_dim'] = model_args['action_dim']
 
         self.actor = set_model_prior(model, prior_args)
         self.load_model(model_args=model_args, device=device)
@@ -346,13 +347,13 @@ class SI_QL(object):
 
     def load_model(self, model_args, device):
 
-        if model_args['net_type'] == 'unet1D_si':
+        if model_args['net_type'] == 'MLP_si':
             # self.actor.net = InterpolantsConditionalUnet1D(
             #     input_dim=model_args['action_dim'],
             #     global_cond_dim=model_args['obs_dim']
             # )
             self.actor.net = InterpolantsMLP(state_dim=model_args['obs_dim'], action_dim=model_args['action_dim'], device=device)
-            self.actor.ema =  ExponentialMovingAverage(self.actor.net.parameters(), decay=0.75)
+            # self.actor.ema =  ExponentialMovingAverage(self.actor.net.parameters(), decay=0.75)
         else:
             raise NotImplementedError
 
