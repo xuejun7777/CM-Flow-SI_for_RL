@@ -166,19 +166,20 @@ class StochasticInterpolants(nn.Module):
         t = torch.clip(t, self.t_min, 1.0 - self.t_min)
         partial_t = self.interpolant_dev(x1=x1, x0=x0, t=t)
         v = v_net(xt, t, global_cond=cond)
-        v_reshape = v.flatten(-2)
-        partial_t_reshape = partial_t.flatten(-2)
-
-        loss = 0.5 * torch.norm(v_reshape, dim=-1) ** 2 - torch.sum(partial_t_reshape * v_reshape, dim=-1)
+        # v_reshape = v.flatten(-2)
+        # partial_t_reshape = partial_t.flatten(-2)
+        # print("v",v,v.shape)
+        # print("partial_t",partial_t,partial_t.shape)
+        loss = 0.5 * torch.norm(v, dim=-1) ** 2 - torch.sum(partial_t * v, dim=-1)
         return torch.mean(loss)
 
     # Do the same for other loss functions
     def score_loss(self, s_net, t, x_t, z, cond):
         t = torch.clip(t, self.t_min, 1.0 - self.t_min)
         s = s_net(x_t, t, global_cond=cond)
-        s_reshape = s.flatten(-2)
-        z_reshape = z.flatten(-2)
-        loss = (0.5 * torch.norm(s_reshape, dim=-1) ** 2 + torch.sum(z_reshape * s_reshape, dim=-1))
+        # s_reshape = s.flatten(-2)
+        # z_reshape = z.flatten(-2)
+        loss = (0.5 * torch.norm(s, dim=-1) ** 2 + torch.sum(z * s, dim=-1))
         return torch.mean(loss)
 
     def b_loss(self, b_net, t, xt, x0, x1, z, cond):
@@ -264,6 +265,7 @@ class StochasticInterpolants(nn.Module):
 
         loss = v_loss + s_loss + b_loss
         loss_info = {'v_loss': v_loss, 's_loss': s_loss, 'b_loss': b_loss}
+        # print(loss_info)
         return loss, loss_info
 
     def q_sample(self, t, x0, x1):

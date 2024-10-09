@@ -177,7 +177,7 @@ class SI_QL(object):
                  eta=1.0,
                  ema_decay=0.995,
                  step_start_ema=1000,
-                 update_ema_every=5,
+                 update_ema_every=2,
                  lr=3e-4,
                  lr_decay=False,
                  lr_maxt=1000,
